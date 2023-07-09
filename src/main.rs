@@ -9,6 +9,8 @@ use rocket::serde::{Serialize, Deserialize};
 use rocket::tokio::sync::broadcast::{channel, Sender, error::RecvError};
 use rocket::tokio::select;
 
+mod watcher;
+
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
 #[serde(crate = "rocket::serde")]
@@ -62,6 +64,10 @@ async fn main() ->  Result<(), rocket::Error> {
             interval.tick().await;
             println!("Other scheduled work");
         }
+    });
+
+    tokio::spawn( async {
+        watcher::async_debounce_watch(vec!["."]).await;
     });
 
     let config = Config {
