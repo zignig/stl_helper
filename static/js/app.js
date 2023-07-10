@@ -6,7 +6,7 @@ var scene = new THREE.Scene();
 
 // CAMERA 
 
-camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight, 0.1, 100);
+camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.x = 17;
 camera.position.y = 12;
 camera.position.z = 13;
@@ -16,12 +16,12 @@ camera.lookAt(scene.position);
 
 renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setClearColor(0x000, 1.0);
-renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setSize(window.innerWidth, window.innerHeight);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.autoRotate = true;
 controls.update();
 
-const size = 10;
+const size = 100;
 const divisions = 10;
 
 const gridHelper = new THREE.GridHelper(size, divisions);
@@ -61,20 +61,70 @@ const material = new THREE.MeshPhysicalMaterial({
     clearcoat: 1.0,
     clearcoatRoughness: 0.25
 })
-const loader = new THREE.STLLoader()
-loader.load(
-    'models/cube.stl',
-    function (geometry) {
-        const mesh = new THREE.Mesh(geometry, material)
-        mesh.scale.set(0.05, 0.05, 0.05);
-        scene.add(mesh)
-    },
-    (xhr) => {
-        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-    },
-    (error) => {
-        console.log(error)
-    }
-)
 
+const loader = new THREE.STLLoader()
+
+function load_stl(name) {
+    loader.load(
+        name,
+        function (geometry) {
+            const mesh = new THREE.Mesh(geometry, material)
+            //mesh.scale.set(0.05, 0.05, 0.05);
+            scene.add(mesh)
+        },
+        (xhr) => {
+            console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+        },
+        (error) => {
+            console.log(error)
+        }
+    )
+};
+
+load_stl('/models/menger.stl');
+// Subscribe to the event source at `uri` with exponential backoff reconnect.
+function subscribe(uri) {
+    var retryTime = 1;
+
+    function connect(uri) {
+        const events = new EventSource(uri);
+
+        events.addEventListener("message", (ev) => {
+            console.log("raw data", JSON.stringify(ev.data));
+            console.log("decoded data", JSON.stringify(JSON.parse(ev.data)));
+            const msg = JSON.parse(ev.data);
+            console.log("LOAD STL HERE");
+            console.log(msg);
+        });
+
+        events.addEventListener("open", () => {
+            setConnectedStatus(true);
+            console.log(`connected to event stream at ${uri}`);
+            retryTime = 1;
+        });
+
+        events.addEventListener("error", () => {
+            setConnectedStatus(false);
+            events.close();
+
+            let timeout = retryTime;
+            retryTime = Math.min(64, retryTime * 2);
+            console.log(`connection lost. attempting to reconnect in ${timeout}s`);
+            setTimeout(() => connect(uri), (() => timeout * 1000)());
+        });
+    }
+
+    connect(uri);
+}
+
+function setConnectedStatus(status) {
+    console.log(status);
+    if (status) {
+        scene.background = new THREE.Color(0, 0, 0);
+    } else {
+        scene.background = new THREE.Color(0.4, 0, 0);
+    }
+}
+
+subscribe('/events');
 animate();
