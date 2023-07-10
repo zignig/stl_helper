@@ -67,7 +67,7 @@ async fn main() ->  Result<(), rocket::Error> {
     });
 
     tokio::spawn( async {
-        watcher::async_debounce_watch(vec!["."]).await;
+        let _ = watcher::async_debounce_watch(vec!["."]).await;
     });
 
     let config = Config {
