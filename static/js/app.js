@@ -18,7 +18,7 @@ renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setClearColor(0x000, 1.0);
 renderer.setSize(window.innerWidth, window.innerHeight);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.autoRotate = true;
+//controls.autoRotate = true;
 controls.update();
 
 const size = 100;

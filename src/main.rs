@@ -10,6 +10,7 @@ use rocket::tokio::sync::broadcast::{channel, Sender, error::RecvError};
 use rocket::tokio::select;
 
 mod watcher;
+mod loader;
 
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
@@ -56,26 +57,30 @@ fn post(form: Form<Message>, queue: &State<Sender<Message>>) {
 
 #[rocket::main] 
 async fn main() ->  Result<(), rocket::Error> {
+    // Cleanup
     tokio::spawn(async {
         let start = Instant::now();
-        let mut interval = interval_at(start, tokio::time::Duration::from_secs(5));
+        let mut interval = interval_at(start, tokio::time::Duration::from_secs(60));
 
         loop {
             interval.tick().await;
-            println!("Other scheduled work");
+            println!("File cleanup ");
         }
     });
 
+    // File change
     tokio::spawn( async {
-        let _ = watcher::async_debounce_watch(vec!["."]).await;
+        let _ = watcher::async_debounce_watch(vec!["/opt/viewer/static/models"]).await;
     });
 
+    // Web Config
     let config = Config {
         port: 8001,
         address: std::net::Ipv4Addr::new(0, 0, 0, 0).into(),
         ..Config::debug_default()
     };
 
+    // Web Server
     rocket::custom(&config)
         .manage(channel::<Message>(1024).0)
         .mount("/", routes![post, events])
