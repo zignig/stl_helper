@@ -102,7 +102,7 @@ fn bounding_box(mesh: IndexedMesh) -> BoundingBox {
 }
 
 #[derive(Debug, Serialize)]
-struct View {
+pub struct View {
     pos: Point,
     look_at: Point,
     file: String,
@@ -116,7 +116,7 @@ impl View {
             file: "".to_string(),
         }
     }
-    fn get_json(&mut self) -> String {
+    pub fn get_json(&mut self) -> String {
         serde_json::to_string(&self).unwrap()
     }
 }

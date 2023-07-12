@@ -1,7 +1,7 @@
 // Async folder watcher that sends a message
 
 use async_watcher::{notify::RecursiveMode, AsyncDebouncer};
-use rocket::tokio;
+use rocket::tokio::sync::broadcast::Sender;
 use std::{path::Path, time::Duration};
 
 use crate::loader;
@@ -14,6 +14,7 @@ use crate::loader;
 //     Ok(())
 // }
 pub async fn async_debounce_watch<P: AsRef<Path>>(
+    sender: Sender<String>,
     paths: Vec<P>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
@@ -42,6 +43,8 @@ pub async fn async_debounce_watch<P: AsRef<Path>>(
                                     "stl" => {
                                         println!("process stl");
                                         loader::process(f);
+                                        let t = "fnord".to_string();
+                                        sender.send(t);
                                     }
                                     _ => println!("no binding"),
                                 }

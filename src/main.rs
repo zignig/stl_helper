@@ -6,7 +6,7 @@ use rocket::fs::{relative, FileServer};
 use rocket::form::Form;
 use rocket::response::stream::{EventStream, Event};
 use rocket::serde::{Serialize, Deserialize};
-use rocket::tokio::sync::broadcast::{channel, Sender, error::RecvError};
+use rocket::tokio::sync::broadcast::{channel, Sender,Receiver, error::RecvError};
 use rocket::tokio::select;
 
 mod watcher;
@@ -25,9 +25,11 @@ struct Message {
 
 /// Returns an infinite stream of server-sent events. Each event is a message
 /// pulled from a broadcast queue sent by the `post` handler.
+/// old 
 #[get("/events")]
-async fn events(queue: &State<Sender<Message>>, mut end: Shutdown) -> EventStream![] {
-    let mut rx = queue.subscribe();
+//async fn events(queue: &State<Sender<Message>>, mut end: Shutdown) -> EventStream![] {
+async fn events(queue: &State<Receiver<String>>, mut end: Shutdown) -> EventStream![] {
+    let mut rx = queue.resubscribe();
     EventStream! {
         loop {
             let msg = select! {
@@ -38,7 +40,6 @@ async fn events(queue: &State<Sender<Message>>, mut end: Shutdown) -> EventStrea
                 },
                 _ = &mut end => break,
             };
-
             yield Event::json(&msg);
         }
     }
@@ -54,9 +55,16 @@ fn post(form: Form<Message>, queue: &State<Sender<Message>>) {
 // #[launch]
 // fn rocket() -> _ {
 // }
+// struct STLLoader { 
+//     rx: Sender<String>
+// }
+
+
 
 #[rocket::main] 
 async fn main() ->  Result<(), rocket::Error> {
+    // Create the primary channel
+    let (tx,mut rx) = channel::<String>(1024);
     // Cleanup
     tokio::spawn(async {
         let start = Instant::now();
@@ -70,7 +78,7 @@ async fn main() ->  Result<(), rocket::Error> {
 
     // File change
     tokio::spawn( async {
-        let _ = watcher::async_debounce_watch(vec!["/opt/viewer/static/models"]).await;
+        let _ = watcher::async_debounce_watch(tx,vec!["/opt/viewer/static/models"]).await;
     });
 
     // Web Config
@@ -79,10 +87,11 @@ async fn main() ->  Result<(), rocket::Error> {
         address: std::net::Ipv4Addr::new(0, 0, 0, 0).into(),
         ..Config::debug_default()
     };
-
+    //let incoming = STLLoader{ rx:rx};
     // Web Server
     rocket::custom(&config)
         .manage(channel::<Message>(1024).0)
+        .manage(rx)
         .mount("/", routes![post, events])
         .mount("/", FileServer::from(relative!("static")))
         .launch()
