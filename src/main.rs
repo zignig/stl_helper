@@ -11,6 +11,7 @@ use rocket::tokio::select;
 
 mod watcher;
 mod loader;
+use loader::View;
 
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
@@ -28,7 +29,7 @@ struct Message {
 /// old 
 #[get("/events")]
 //async fn events(queue: &State<Sender<Message>>, mut end: Shutdown) -> EventStream![] {
-async fn events(queue: &State<Receiver<String>>, mut end: Shutdown) -> EventStream![] {
+async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream![] {
     let mut rx = queue.resubscribe();
     EventStream! {
         loop {
@@ -52,19 +53,12 @@ fn post(form: Form<Message>, queue: &State<Sender<Message>>) {
     let _res = queue.send(form.into_inner());
 }
 
-// #[launch]
-// fn rocket() -> _ {
-// }
-// struct STLLoader { 
-//     rx: Sender<String>
-// }
-
-
 
 #[rocket::main] 
 async fn main() ->  Result<(), rocket::Error> {
     // Create the primary channel
-    let (tx,mut rx) = channel::<String>(1024);
+    let (tx,mut rx) = channel::<View>(1024);
+    
     // Cleanup
     tokio::spawn(async {
         let start = Instant::now();
@@ -87,7 +81,7 @@ async fn main() ->  Result<(), rocket::Error> {
         address: std::net::Ipv4Addr::new(0, 0, 0, 0).into(),
         ..Config::debug_default()
     };
-    //let incoming = STLLoader{ rx:rx};
+
     // Web Server
     rocket::custom(&config)
         .manage(channel::<Message>(1024).0)

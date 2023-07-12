@@ -1,8 +1,13 @@
 var scene3d = document.getElementById("viewer");
 
 // SCENE
+var obj;
 
 var scene = new THREE.Scene();
+
+function clear(){
+    scene.remove(obj);
+}
 
 // CAMERA 
 
@@ -68,8 +73,10 @@ function load_stl(name) {
     loader.load(
         name,
         function (geometry) {
+            clear();
             const mesh = new THREE.Mesh(geometry, material)
             //mesh.scale.set(0.05, 0.05, 0.05);
+            obj = mesh
             scene.add(mesh)
         },
         (xhr) => {
@@ -81,7 +88,7 @@ function load_stl(name) {
     )
 };
 
-load_stl('/models/menger.stl');
+load_stl("/models/rubicks.stl");
 // Subscribe to the event source at `uri` with exponential backoff reconnect.
 function subscribe(uri) {
     var retryTime = 1;
@@ -90,11 +97,14 @@ function subscribe(uri) {
         const events = new EventSource(uri);
 
         events.addEventListener("message", (ev) => {
-            console.log("raw data", JSON.stringify(ev.data));
-            console.log("decoded data", JSON.stringify(JSON.parse(ev.data)));
+            //console.log("raw data", JSON.stringify(ev.data));
+            //console.log("decoded data", JSON.stringify(JSON.parse(ev.data)));
             const msg = JSON.parse(ev.data);
-            console.log("LOAD STL HERE");
             console.log(msg);
+            controls.target.x = msg.centroid.x;
+            controls.target.y = msg.centroid.y;
+            controls.target.z = msg.centroid.z;
+            load_stl("/models/"+msg.file);
         });
 
         events.addEventListener("open", () => {

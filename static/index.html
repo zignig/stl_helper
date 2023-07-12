@@ -9,10 +9,30 @@
     <script src="/js/three.min.js"></script>
     <script src="/js/OrbitControls.js"></script>
     <script src="/js/STLLoader.js"></script>
+    <link rel="stylesheet" href="/css/bulma.min.css" />
+    <link rel="stylesheet" href="/css/viewer.css" />
 </head>
 
 <body>
-    <div id="viewer"></div>
+
+    <div class="">
+        <div id="viewer"></div>
+    </div>
+    <div id="info" class="box panel " style="position: absolute">
+        <aside class="menu">
+            <ul class="menu-list">
+                <li><a>Menu</a></li>
+                <li>
+                    <a>Submenu</a>
+                    <ul>
+                        <li><a>One</a></li>
+                        <li><a>Two</a></li>
+                    </ul>
+                </li>
+                <li><a>Invitations</a></li>
+            </ul>
+        </aside>
+    </div>
     <script src="/js/app.js"></script>
 </body>
 

@@ -4,17 +4,24 @@ use std::fs::OpenOptions;
 use std::path::PathBuf;
 use stl_io::{read_stl, IndexedMesh};
 
-pub fn process(path: &PathBuf) {
+pub fn process(path: &PathBuf) -> Option<View>{
     if let Some(file_name) = path.as_os_str().to_str() {
         let mut file = OpenOptions::new().read(true).open(file_name).unwrap();
+        // TODO need to handle this 
         let mesh = read_stl(&mut file).unwrap();
         //println!("{:?}", mesh);
         let mut bb = bounding_box(mesh);
-        println!("Centroid {:?}", bb.centroid());
+        let doc_name = path.file_name().unwrap().to_str().unwrap();
+        let mut view = View::new();
+        view.file = doc_name.to_string();
+        view.centroid = bb.centroid();
+        println!("{:#?}",view);
+        return Some(view);
     }
+    None
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize,Clone)]
 struct Point {
     x: f32,
     y: f32,
@@ -97,23 +104,24 @@ fn bounding_box(mesh: IndexedMesh) -> BoundingBox {
             bb.tl.z = z;
         }
     }
-    println!("{:?}", bb);
     bb
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize,Clone)]
 pub struct View {
     pos: Point,
     look_at: Point,
+    centroid: Point,
     file: String,
 }
 
 impl View {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             pos: Point::new(),
             look_at: Point::new(),
             file: "".to_string(),
+            centroid: Point::new(),
         }
     }
     pub fn get_json(&mut self) -> String {

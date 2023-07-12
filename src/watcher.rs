@@ -5,6 +5,8 @@ use rocket::tokio::sync::broadcast::Sender;
 use std::{path::Path, time::Duration};
 
 use crate::loader;
+use crate::loader::View;
+
 // #[tokio::main]
 // async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //     let paths = vec!["Cargo.toml", "Cargo.lock", "crates", "examples"];
@@ -14,7 +16,7 @@ use crate::loader;
 //     Ok(())
 // }
 pub async fn async_debounce_watch<P: AsRef<Path>>(
-    sender: Sender<String>,
+    sender: Sender<loader::View>,
     paths: Vec<P>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
@@ -42,9 +44,9 @@ pub async fn async_debounce_watch<P: AsRef<Path>>(
                                 match exts {
                                     "stl" => {
                                         println!("process stl");
-                                        loader::process(f);
-                                        let t = "fnord".to_string();
-                                        sender.send(t);
+                                        if let Some(view) = loader::process(f){
+                                            sender.send(view); 
+                                        }                                       
                                     }
                                     _ => println!("no binding"),
                                 }
