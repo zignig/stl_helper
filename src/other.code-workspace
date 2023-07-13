@@ -1,0 +1,13 @@
+{
+    "folders": [
+        {
+            "path": ".."
+        },
+        {
+            "path": "../../opencascade-rs/crates/opencascade-sys/examples"
+        },
+        {
+            "path": "../../opencascade-rs/crates/opencascade-sys"
+        }
+    ]
+}

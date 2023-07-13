@@ -88,7 +88,7 @@ function load_stl(name) {
     )
 };
 
-load_stl("/models/rubicks.stl");
+load_stl("/models/cube.stl");
 // Subscribe to the event source at `uri` with exponential backoff reconnect.
 function subscribe(uri) {
     var retryTime = 1;

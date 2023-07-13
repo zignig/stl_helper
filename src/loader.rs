@@ -3,25 +3,41 @@ use serde_json::{Result, Value};
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 use stl_io::{read_stl, IndexedMesh};
+use std::env::current_dir;
 
-pub fn process(path: &PathBuf) -> Option<View>{
+pub fn process(path: &PathBuf) -> Option<View> {
     if let Some(file_name) = path.as_os_str().to_str() {
         let mut file = OpenOptions::new().read(true).open(file_name).unwrap();
-        // TODO need to handle this 
-        let mesh = read_stl(&mut file).unwrap();
-        //println!("{:?}", mesh);
-        let mut bb = bounding_box(mesh);
-        let doc_name = path.file_name().unwrap().to_str().unwrap();
-        let mut view = View::new();
-        view.file = doc_name.to_string();
-        view.centroid = bb.centroid();
-        println!("{:#?}",view);
-        return Some(view);
+        // TODO need to handle this
+        let file_res = read_stl(&mut file);
+        match file_res {
+            Ok(mesh) => {
+                //println!("{:?}", mesh);
+                let mut bb = bounding_box(mesh);
+                let doc_name = path.file_name().unwrap().to_str().unwrap();
+                let mut view = View::new();
+                view.file = doc_name.to_string();
+                view.centroid = bb.centroid();
+                println!("{:#?}", view);
+                // Copy the file into place
+                let mut dest = PathBuf::new();
+                dest.push(current_dir().unwrap());
+                dest.push("static");
+                dest.push("models");
+                dest.push(doc_name);
+                println!("Destination {:?}", dest);
+                let _ = std::fs::copy(path,dest);
+                return Some(view);
+            }
+            Err(err) => {
+                println!("{:?}", err);
+            }
+        }
     }
     None
 }
 
-#[derive(Debug, Serialize,Clone)]
+#[derive(Debug, Serialize, Clone)]
 struct Point {
     x: f32,
     y: f32,
@@ -107,7 +123,7 @@ fn bounding_box(mesh: IndexedMesh) -> BoundingBox {
     bb
 }
 
-#[derive(Debug, Serialize,Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct View {
     pos: Point,
     look_at: Point,

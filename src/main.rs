@@ -13,22 +13,10 @@ mod watcher;
 mod loader;
 use loader::View;
 
-#[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
-#[serde(crate = "rocket::serde")]
-struct Message {
-    #[field(validate = len(..30))]
-    pub room: String,
-    #[field(validate = len(..20))]
-    pub username: String,
-    pub message: String,
-}
-
 /// Returns an infinite stream of server-sent events. Each event is a message
 /// pulled from a broadcast queue sent by the `post` handler.
 /// old 
 #[get("/events")]
-//async fn events(queue: &State<Sender<Message>>, mut end: Shutdown) -> EventStream![] {
 async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream![] {
     let mut rx = queue.resubscribe();
     EventStream! {
@@ -45,14 +33,6 @@ async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream
         }
     }
 }
-
-/// Receive a message from a form submission and broadcast it to any receivers.
-#[post("/message", data = "<form>")]
-fn post(form: Form<Message>, queue: &State<Sender<Message>>) {
-    // A send 'fails' if there are no active subscribers. That's okay.
-    let _res = queue.send(form.into_inner());
-}
-
 
 #[rocket::main] 
 async fn main() ->  Result<(), rocket::Error> {
@@ -72,7 +52,7 @@ async fn main() ->  Result<(), rocket::Error> {
 
     // File change
     tokio::spawn( async {
-        let _ = watcher::async_debounce_watch(tx,vec!["/opt/viewer/static/models"]).await;
+        let _ = watcher::async_debounce_watch(tx,vec!["/opt/opencascade-rs/crates/opencascade-sys/"]).await;
     });
 
     // Web Config
@@ -84,9 +64,8 @@ async fn main() ->  Result<(), rocket::Error> {
 
     // Web Server
     rocket::custom(&config)
-        .manage(channel::<Message>(1024).0)
         .manage(rx)
-        .mount("/", routes![post, events])
+        .mount("/", routes![events])
         .mount("/", FileServer::from(relative!("static")))
         .launch()
         .await?;
