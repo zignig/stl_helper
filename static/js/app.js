@@ -11,7 +11,7 @@ function clear(){
 
 // CAMERA 
 
-camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 5000);
 camera.position.x = 17;
 camera.position.y = 12;
 camera.position.z = 13;
@@ -24,6 +24,7 @@ renderer.setClearColor(0x000, 1.0);
 renderer.setSize(window.innerWidth, window.innerHeight);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 //controls.autoRotate = true;
+controls.autoRotateSpeed = 1.0;
 controls.update();
 
 const size = 100;

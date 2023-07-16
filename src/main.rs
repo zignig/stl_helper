@@ -1,23 +1,27 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-use rocket::tokio::time::{Instant, interval_at};
-use rocket::{State, Shutdown, tokio, Config};
-use rocket::fs::{relative, FileServer};
 use rocket::form::Form;
-use rocket::response::stream::{EventStream, Event};
-use rocket::serde::{Serialize, Deserialize};
-use rocket::tokio::sync::broadcast::{channel, Sender,Receiver, error::RecvError};
+use rocket::fs::{relative, FileServer};
+use rocket::response::stream::{Event, EventStream};
+use rocket::serde::{Deserialize, Serialize};
 use rocket::tokio::select;
+use rocket::tokio::sync::broadcast::{channel, error::RecvError, Receiver, Sender};
+use rocket::tokio::time::{interval_at, Instant};
+use rocket::{tokio, Config, Shutdown, State};
 
-mod watcher;
 mod loader;
+mod watcher;
+mod config;
+
 use loader::View;
+use tokio::sync::Mutex;
 
 /// Returns an infinite stream of server-sent events. Each event is a message
 /// pulled from a broadcast queue sent by the `post` handler.
-/// old 
+/// old
 #[get("/events")]
-async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream![] {
+async fn events(queue: &State<Receiver<View>>,recent: &State<View>, mut end: Shutdown) -> EventStream![] {
     let mut rx = queue.resubscribe();
     EventStream! {
         loop {
@@ -29,16 +33,23 @@ async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream
                 },
                 _ = &mut end => break,
             };
+            // Move last mesag into state 
+            // todo borked.
+            //recent = State::from(msg);
             yield Event::json(&msg);
         }
     }
 }
 
-#[rocket::main] 
-async fn main() ->  Result<(), rocket::Error> {
+// Save the last view ( need to manage in another type)
+type RecentView = Mutex<View>;
+
+
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
     // Create the primary channel
-    let (tx,mut rx) = channel::<View>(1024);
-    
+    let (tx, mut rx) = channel::<View>(1024);
+
     // Cleanup
     tokio::spawn(async {
         let start = Instant::now();
@@ -51,8 +62,10 @@ async fn main() ->  Result<(), rocket::Error> {
     });
 
     // File change
-    tokio::spawn( async {
-        let _ = watcher::async_debounce_watch(tx,vec!["/opt/opencascade-rs/crates/opencascade-sys/"]).await;
+    tokio::spawn(async {
+        let _ =
+            watcher::async_debounce_watch(tx, vec!["/opt/viewer/stls/", "/opt/opencascade-rs/"])
+                .await;
     });
 
     // Web Config
@@ -65,6 +78,7 @@ async fn main() ->  Result<(), rocket::Error> {
     // Web Server
     rocket::custom(&config)
         .manage(rx)
+        .manage(View::new())
         .mount("/", routes![events])
         .mount("/", FileServer::from(relative!("static")))
         .launch()
