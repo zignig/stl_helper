@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate rocket;
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use rocket::form::Form;
 use rocket::fs::{relative, FileServer};
 use rocket::response::stream::{Event, EventStream};
@@ -13,15 +16,21 @@ use rocket::{tokio, Config, Shutdown, State};
 mod loader;
 mod watcher;
 mod config;
+mod storage;
+
+use config::Cli;
+use clap::Parser;
 
 use loader::View;
 use tokio::sync::Mutex;
+
+use crate::storage::Storage;
 
 /// Returns an infinite stream of server-sent events. Each event is a message
 /// pulled from a broadcast queue sent by the `post` handler.
 /// old
 #[get("/events")]
-async fn events(queue: &State<Receiver<View>>,recent: &State<View>, mut end: Shutdown) -> EventStream![] {
+async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream![] {
     let mut rx = queue.resubscribe();
     EventStream! {
         loop {
@@ -41,14 +50,24 @@ async fn events(queue: &State<Receiver<View>>,recent: &State<View>, mut end: Shu
     }
 }
 
-// Save the last view ( need to manage in another type)
-type RecentView = Mutex<View>;
-
+#[get("/model/<name>")]
+async fn model(name: String, store: &State<Storage>){
+    let map = store.data.lock().unwrap();
+    if let Some(data) = map.get(&name){
+        
+    }
+}
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
+    let cli = Cli::parse();
+    
     // Create the primary channel
     let (tx, mut rx) = channel::<View>(1024);
+
+    // Create the storagee 
+    let mut stor = storage::Storage::new();
+    let other = stor.clone();
 
     // Cleanup
     tokio::spawn(async {
@@ -64,7 +83,7 @@ async fn main() -> Result<(), rocket::Error> {
     // File change
     tokio::spawn(async {
         let _ =
-            watcher::async_debounce_watch(tx, vec!["/opt/viewer/stls/", "/opt/opencascade-rs/"])
+            watcher::async_debounce_watch(other, tx, vec!["/opt/viewer/stls/", "/opt/opencascade-rs/"])
                 .await;
     });
 
@@ -72,14 +91,16 @@ async fn main() -> Result<(), rocket::Error> {
     let config = Config {
         port: 8001,
         address: std::net::Ipv4Addr::new(0, 0, 0, 0).into(),
+        workers: 10,
         ..Config::debug_default()
     };
 
     // Web Server
     rocket::custom(&config)
         .manage(rx)
+        .manage(stor)
         .manage(View::new())
-        .mount("/", routes![events])
+        .mount("/", routes![events,model])
         .mount("/", FileServer::from(relative!("static")))
         .launch()
         .await?;

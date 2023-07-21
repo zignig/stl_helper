@@ -1,11 +1,14 @@
 use serde::Serialize;
 use serde_json::{Result, Value};
-use std::fs::OpenOptions;
-use std::path::PathBuf;
-use stl_io::{read_stl, IndexedMesh};
 use std::env::current_dir;
+use std::io::Read;
+use std::path::PathBuf;
+use std::{fs::OpenOptions, io::Seek};
+use stl_io::{read_stl, IndexedMesh};
 
-pub fn process(path: &PathBuf) -> Option<View> {
+use crate::storage::Storage;
+
+pub fn process(path: &PathBuf, storage: &Storage) -> Option<View> {
     if let Some(file_name) = path.as_os_str().to_str() {
         let mut file = OpenOptions::new().read(true).open(file_name).unwrap();
         // TODO need to handle this
@@ -18,15 +21,28 @@ pub fn process(path: &PathBuf) -> Option<View> {
                 let mut view = View::new();
                 view.file = doc_name.to_string();
                 view.centroid = bb.centroid();
-                println!("{:#?}", view);
+                //println!("{:#?}", view);
+
+                // Store the file and view 
+                let mut maps = storage.map.lock().unwrap();
+                maps.insert(doc_name.to_string(), view.clone());
+
+                // Stash the data
+                file.rewind().unwrap();
+                let mut buf: Vec<u8> = Vec::new();
+                let _ = file.read_to_end(&mut buf).unwrap();
+                let mut data = storage.data.lock().unwrap();
+                data.insert(doc_name.to_string(),buf);
+
                 // Copy the file into place
-                let mut dest = PathBuf::new();
-                dest.push(current_dir().unwrap());
-                dest.push("static");
-                dest.push("models");
-                dest.push(doc_name);
-                println!("Destination {:?}", dest);
-                let _ = std::fs::copy(path,dest);
+                // let mut dest = PathBuf::new();
+                // dest.push(current_dir().unwrap());
+                // dest.push("static");
+                // dest.push("models");
+                // dest.push(doc_name);
+                // println!("Destination {:?}", dest);
+                // let _ = std::fs::copy(path,dest);
+                println!("{:#?}", data.keys());
                 return Some(view);
             }
             Err(err) => {

@@ -1,11 +1,12 @@
 // Async folder watcher that sends a message
 
-use async_watcher::{notify::RecursiveMode, AsyncDebouncer};
-use rocket::tokio::sync::broadcast::Sender;
-use std::{path::Path, time::Duration};
-use std::fs::{copy};
 use crate::loader;
 use crate::loader::View;
+use crate::storage::Storage;
+use async_watcher::{notify::RecursiveMode, AsyncDebouncer};
+use rocket::tokio::sync::broadcast::Sender;
+use std::fs::copy;
+use std::{path::Path, time::Duration};
 
 // #[tokio::main]
 // async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,6 +17,7 @@ use crate::loader::View;
 //     Ok(())
 // }
 pub async fn async_debounce_watch<P: AsRef<Path>>(
+    store: Storage,
     sender: Sender<loader::View>,
     paths: Vec<P>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -44,9 +46,9 @@ pub async fn async_debounce_watch<P: AsRef<Path>>(
                                 match exts {
                                     "stl" => {
                                         println!("process stl");
-                                        if let Some(view) = loader::process(f){
-                                            sender.send(view); 
-                                        }                                       
+                                        if let Some(view) = loader::process(f, &store) {
+                                            sender.send(view);
+                                        }
                                     }
                                     _ => println!("no binding"),
                                 }
