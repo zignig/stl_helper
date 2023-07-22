@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use rocket::form::Form;
 use rocket::fs::{relative, FileServer};
+use rocket::response::content;
 use rocket::response::stream::{Event, EventStream};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::tokio::select;
@@ -51,11 +52,12 @@ async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream
 }
 
 #[get("/model/<name>")]
-async fn model(name: String, store: &State<Storage>){
+async fn model(name: String, store: &State<Storage>)-> Option<Vec<u8>> {
     let map = store.data.lock().unwrap();
     if let Some(data) = map.get(&name){
-        
+        return Some(data.to_vec());
     }
+    None
 }
 
 #[rocket::main]

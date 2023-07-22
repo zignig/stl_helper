@@ -89,7 +89,7 @@ function load_stl(name) {
     )
 };
 
-load_stl("/models/cube.stl");
+// load_stl("/models/cube.stl");
 // Subscribe to the event source at `uri` with exponential backoff reconnect.
 function subscribe(uri) {
     var retryTime = 1;
@@ -105,7 +105,7 @@ function subscribe(uri) {
             controls.target.x = msg.centroid.x;
             controls.target.y = msg.centroid.y;
             controls.target.z = msg.centroid.z;
-            load_stl("/models/"+msg.file);
+            load_stl("/model/"+msg.file);
         });
 
         events.addEventListener("open", () => {

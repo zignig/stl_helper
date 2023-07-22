@@ -21,7 +21,7 @@ pub fn process(path: &PathBuf, storage: &Storage) -> Option<View> {
                 let mut view = View::new();
                 view.file = doc_name.to_string();
                 view.centroid = bb.centroid();
-                //println!("{:#?}", view);
+                println!("{:#?}", view);
 
                 // Store the file and view 
                 let mut maps = storage.map.lock().unwrap();
@@ -33,15 +33,6 @@ pub fn process(path: &PathBuf, storage: &Storage) -> Option<View> {
                 let _ = file.read_to_end(&mut buf).unwrap();
                 let mut data = storage.data.lock().unwrap();
                 data.insert(doc_name.to_string(),buf);
-
-                // Copy the file into place
-                // let mut dest = PathBuf::new();
-                // dest.push(current_dir().unwrap());
-                // dest.push("static");
-                // dest.push("models");
-                // dest.push(doc_name);
-                // println!("Destination {:?}", dest);
-                // let _ = std::fs::copy(path,dest);
                 println!("{:#?}", data.keys());
                 return Some(view);
             }
