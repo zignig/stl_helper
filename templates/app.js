@@ -73,7 +73,6 @@ const loader = new THREE.STLLoader()
 
 // send to load an existing model
 function recent(name){
-    console.log("COOL",name);
     axios.get('/recent/'+name);
 }
 
@@ -83,7 +82,6 @@ function load_stl(name) {
         function (geometry) {
             clear();
             const mesh = new THREE.Mesh(geometry, material)
-            //mesh.scale.set(0.05, 0.05, 0.05);
             obj = mesh
             scene.add(mesh)
         },
@@ -105,7 +103,7 @@ function subscribe(uri) {
         const events = new EventSource(uri);
 
         events.addEventListener("message", (ev) => {
-            console.log("decoded data", JSON.stringify(JSON.parse(ev.data)));
+            //console.log("decoded data", JSON.stringify(JSON.parse(ev.data)));
             const msg = JSON.parse(ev.data);
             console.log(msg);
             controls.target.x = msg.centroid.x;
