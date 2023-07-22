@@ -1,21 +1,11 @@
 // Async folder watcher that sends a message
 
 use crate::loader;
-use crate::loader::View;
 use crate::storage::Storage;
 use async_watcher::{notify::RecursiveMode, AsyncDebouncer};
 use rocket::tokio::sync::broadcast::Sender;
-use std::fs::copy;
 use std::{path::Path, time::Duration};
 
-// #[tokio::main]
-// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//     let paths = vec!["Cargo.toml", "Cargo.lock", "crates", "examples"];
-
-//     async_debounce_watch(paths).await?;
-
-//     Ok(())
-// }
 pub async fn async_debounce_watch<P: AsRef<Path>>(
     store: Storage,
     sender: Sender<loader::View>,

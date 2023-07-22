@@ -1,6 +1,5 @@
 use serde::Serialize;
-use serde_json::{Result, Value};
-use std::env::current_dir;
+//use serde_json::{Result, Value};
 use std::io::Read;
 use std::path::PathBuf;
 use std::{fs::OpenOptions, io::Seek};
@@ -23,17 +22,20 @@ pub fn process(path: &PathBuf, storage: &Storage) -> Option<View> {
                 view.centroid = bb.centroid();
                 println!("{:#?}", view);
 
-                // Store the file and view 
+                // Store the file and view
                 let mut maps = storage.map.lock().unwrap();
-                maps.insert(doc_name.to_string(), view.clone());
+                maps.put(doc_name.to_string(), view.clone());
 
                 // Stash the data
                 file.rewind().unwrap();
                 let mut buf: Vec<u8> = Vec::new();
                 let _ = file.read_to_end(&mut buf).unwrap();
                 let mut data = storage.data.lock().unwrap();
-                data.insert(doc_name.to_string(),buf);
-                println!("{:#?}", data.keys());
+                data.put(doc_name.to_string(), buf);
+                for (i, _) in data.iter() {
+                    view.recent.push(i.to_string());
+                    //println!("{:#?}", i)
+                }
                 return Some(view);
             }
             Err(err) => {
@@ -136,6 +138,7 @@ pub struct View {
     look_at: Point,
     centroid: Point,
     file: String,
+    pub recent: Vec<String>,
 }
 
 impl View {
@@ -145,6 +148,7 @@ impl View {
             look_at: Point::new(),
             file: "".to_string(),
             centroid: Point::new(),
+            recent: vec![],
         }
     }
     pub fn get_json(&mut self) -> String {

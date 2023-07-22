@@ -5,7 +5,7 @@ var obj;
 
 var scene = new THREE.Scene();
 
-function clear(){
+function clear() {
     scene.remove(obj);
 }
 
@@ -70,6 +70,13 @@ const material = new THREE.MeshPhysicalMaterial({
 
 const loader = new THREE.STLLoader()
 
+
+// send to load an existing model
+function recent(name){
+    console.log("COOL",name);
+    axios.get('/recent/'+name);
+}
+
 function load_stl(name) {
     loader.load(
         name,
@@ -98,14 +105,27 @@ function subscribe(uri) {
         const events = new EventSource(uri);
 
         events.addEventListener("message", (ev) => {
-            //console.log("raw data", JSON.stringify(ev.data));
-            //console.log("decoded data", JSON.stringify(JSON.parse(ev.data)));
+            console.log("decoded data", JSON.stringify(JSON.parse(ev.data)));
             const msg = JSON.parse(ev.data);
             console.log(msg);
             controls.target.x = msg.centroid.x;
             controls.target.y = msg.centroid.y;
             controls.target.z = msg.centroid.z;
-            load_stl("/model/"+msg.file);
+            ul = document.getElementById('models');
+            ul.innerHTML = '';
+            arr = msg.recent;
+            arr.forEach(function (name) {
+                console.log(name);
+                var li = document.createElement('li');
+                var link = document.createElement('a');
+                link.onclick = function() { recent(name)};
+                link.innerHTML = name;
+
+                li.appendChild(link);
+                
+                ul.appendChild(li);
+            });
+            load_stl("/model/" + msg.file);
         });
 
         events.addEventListener("open", () => {

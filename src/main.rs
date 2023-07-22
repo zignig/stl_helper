@@ -1,35 +1,60 @@
 #[macro_use]
 extern crate rocket;
 
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use rocket::form::Form;
-use rocket::fs::{relative, FileServer};
-use rocket::response::content;
 use rocket::response::stream::{Event, EventStream};
-use rocket::serde::{Deserialize, Serialize};
 use rocket::tokio::select;
 use rocket::tokio::sync::broadcast::{channel, error::RecvError, Receiver, Sender};
 use rocket::tokio::time::{interval_at, Instant};
 use rocket::{tokio, Config, Shutdown, State};
 
-mod loader;
-mod watcher;
 mod config;
+mod loader;
 mod storage;
+mod watcher;
 
-use config::Cli;
 use clap::Parser;
+use config::Cli;
 
 use loader::View;
-use tokio::sync::Mutex;
 
 use crate::storage::Storage;
 
+use askama::Template;
+
+use rocket::http::ContentType;
+use rocket::response::content::RawHtml;
+use rocket::Responder;
+use rust_embed::RustEmbed;
+
+use std::borrow::Cow;
+use std::ffi::OsStr;
+use std::path::PathBuf;
+
+// Baked in assets
+#[derive(RustEmbed)]
+#[folder = "static"]
+struct Asset;
+
+/// Serve Baked Assets
+#[get("/static/<file..>")]
+async fn baked(file: PathBuf) -> Option<(ContentType, Cow<'static, [u8]>)> {
+    let filename = file.display().to_string();
+    let asset = Asset::get(&filename)?;
+    let content_type = file
+        .extension()
+        .and_then(OsStr::to_str)
+        .and_then(ContentType::from_extension)
+        .unwrap_or(ContentType::Bytes);
+    Some((content_type, asset.data))
+}
+/// App.js template
+#[derive(Template)]
+#[template(path = "app.js", escape = "none")]
+struct AppJsTmpl {
+    bg_color: String,
+}
+
 /// Returns an infinite stream of server-sent events. Each event is a message
-/// pulled from a broadcast queue sent by the `post` handler.
-/// old
 #[get("/events")]
 async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream![] {
     let mut rx = queue.resubscribe();
@@ -43,7 +68,7 @@ async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream
                 },
                 _ = &mut end => break,
             };
-            // Move last mesag into state 
+            // Move last mesag into state
             // todo borked.
             //recent = State::from(msg);
             yield Event::json(&msg);
@@ -51,10 +76,37 @@ async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream
     }
 }
 
+#[get("/")]
+async fn index() -> Option<RawHtml<Cow<'static, [u8]>>> {
+    let asset = Asset::get("index.html")?;
+    Some(RawHtml(asset.data))
+}
+
+#[get("/app.js")]
+async fn app_js() -> (ContentType,String) {
+    let data = AppJsTmpl {
+        bg_color: "#FF0000".to_string(),
+    };
+    (ContentType::JavaScript,data.render().unwrap())
+}
+
+#[get("/recent/<name>")]
+async fn recent(name: String, tx: &State<Sender<View>> ,store: &State<Storage>){
+    let mut map = store.map.lock().unwrap();
+    if let Some(view) = map.get(&name){
+        let mut cview  = view.clone();
+        for (i, _) in map.iter() {
+            cview.recent.push(i.to_string());
+            //println!("{:#?}", i)
+        }
+        let _ = tx.send(cview);
+    }
+}
+
 #[get("/model/<name>")]
-async fn model(name: String, store: &State<Storage>)-> Option<Vec<u8>> {
-    let map = store.data.lock().unwrap();
-    if let Some(data) = map.get(&name){
+async fn model(name: String, store: &State<Storage>) -> Option<Vec<u8>> {
+    let mut map = store.data.lock().unwrap();
+    if let Some(data) = map.get(&name) {
         return Some(data.to_vec());
     }
     None
@@ -63,11 +115,12 @@ async fn model(name: String, store: &State<Storage>)-> Option<Vec<u8>> {
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
     let cli = Cli::parse();
-    
+
     // Create the primary channel
     let (tx, mut rx) = channel::<View>(1024);
+    let rocket_tx = tx.clone();
 
-    // Create the storagee 
+    // Create the storagee
     let mut stor = storage::Storage::new();
     let other = stor.clone();
 
@@ -84,9 +137,12 @@ async fn main() -> Result<(), rocket::Error> {
 
     // File change
     tokio::spawn(async {
-        let _ =
-            watcher::async_debounce_watch(other, tx, vec!["/opt/viewer/stls/", "/opt/opencascade-rs/"])
-                .await;
+        let _ = watcher::async_debounce_watch(
+            other,
+            tx,
+            vec!["/opt/viewer/stls/", "/opt/opencascade-rs/"],
+        )
+        .await;
     });
 
     // Web Config
@@ -101,9 +157,9 @@ async fn main() -> Result<(), rocket::Error> {
     rocket::custom(&config)
         .manage(rx)
         .manage(stor)
-        .manage(View::new())
-        .mount("/", routes![events,model])
-        .mount("/", FileServer::from(relative!("static")))
+        .manage(rocket_tx)
+        .mount("/", routes![index,app_js,recent,baked, events, model])
+        //.mount("/", FileServer::from(relative!("static")))
         .launch()
         .await?;
     Ok(())

@@ -2,7 +2,6 @@ use std::{fs, process::exit};
 // config for  the server setup
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use serde_json::{Result, Value};
 use std::path::PathBuf;
 use toml;
 

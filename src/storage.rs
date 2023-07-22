@@ -4,21 +4,27 @@
 //!
 //!     
 
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::loader::View;
 
+extern crate lru;
+
+use lru::LruCache;
+use std::num::NonZeroUsize;
+
+static CACHE_SIZE:usize = 5;
+
 pub struct Storage {
-    pub map: Arc<Mutex<HashMap<String, View>>>,
-    pub data: Arc<Mutex<HashMap<String,Vec<u8>>>>
+    pub map: Arc<Mutex<LruCache<String, View>>>,
+    pub data: Arc<Mutex<LruCache<String,Vec<u8>>>>
 }
 
 impl Storage {
     pub fn new() -> Self {
         Self {
-            map: Arc::new(Mutex::new(HashMap::new())),
-            data: Arc::new(Mutex::new(HashMap::new())),
+            map: Arc::new(Mutex::new(LruCache::new(NonZeroUsize::new(CACHE_SIZE.into()).unwrap()))),
+            data: Arc::new(Mutex::new(LruCache::new(NonZeroUsize::new(CACHE_SIZE.into()).unwrap()))),
         }
     }
 
