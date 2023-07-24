@@ -27,7 +27,7 @@ pub async fn async_debounce_watch<P: AsRef<Path>>(
         match event {
             Ok(events) => {
                 events.iter().for_each(|e| {
-                    println!("event: {:?}", e);
+                    //println!("event: {:?}", e);
                     let f = &e.path;
                     // Does the file exist
                     if f.exists() {
