@@ -9,6 +9,7 @@ edition = "2021"
 askama = { version = "0.12.0" }
 async-watcher = "0.1.1"
 clap = { version = "4.3.12", features = ["derive"] }
+figment = { version = "0.10.10", features = ["toml"] }
 lru = "0.11.0"
 rocket = { version = "=0.5.0-rc.3", features = ["json"] }
 rust-embed = { version = "6.8.1", features = ["rocket"] }

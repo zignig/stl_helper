@@ -151,7 +151,4 @@ impl View {
             recent: vec![],
         }
     }
-    pub fn get_json(&mut self) -> String {
-        serde_json::to_string(&self).unwrap()
-    }
 }

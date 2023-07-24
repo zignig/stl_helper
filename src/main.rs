@@ -12,9 +12,6 @@ mod loader;
 mod storage;
 mod watcher;
 
-use clap::Parser;
-use config::Cli;
-
 use loader::View;
 
 use crate::storage::Storage;
@@ -23,7 +20,6 @@ use askama::Template;
 
 use rocket::http::ContentType;
 use rocket::response::content::RawHtml;
-use rocket::Responder;
 use rust_embed::RustEmbed;
 
 use std::borrow::Cow;
@@ -48,11 +44,10 @@ async fn baked(file: PathBuf) -> Option<(ContentType, Cow<'static, [u8]>)> {
     Some((content_type, asset.data))
 }
 /// App.js template
+/// Add fetures they come up.
 #[derive(Template)]
 #[template(path = "app.js", escape = "none")]
-struct AppJsTmpl {
-    bg_color: String,
-}
+struct AppJsTmpl;
 
 /// Returns an infinite stream of server-sent events. Each event is a message
 #[get("/events")]
@@ -85,7 +80,6 @@ async fn index() -> Option<RawHtml<Cow<'static, [u8]>>> {
 #[get("/app.js")]
 async fn app_js() -> (ContentType,String) {
     let data = AppJsTmpl {
-        bg_color: "#FF0000".to_string(),
     };
     (ContentType::JavaScript,data.render().unwrap())
 }
@@ -114,10 +108,11 @@ async fn model(name: String, store: &State<Storage>) -> Option<Vec<u8>> {
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    let cli = Cli::parse();
+    let conf = config::start();
+
 
     // Create the primary channel
-    let (tx, mut rx) = channel::<View>(1024);
+    let (tx,rx) = channel::<View>(1024);
     let rocket_tx = tx.clone();
 
     // Create the storagee
@@ -140,14 +135,14 @@ async fn main() -> Result<(), rocket::Error> {
         let _ = watcher::async_debounce_watch(
             other,
             tx,
-            vec!["/opt/viewer/stls/", "/opt/opencascade-rs/"],
+            conf.folders,
         )
         .await;
     });
 
     // Web Config
     let config = Config {
-        port: 8001,
+        port: conf.port,
         address: std::net::Ipv4Addr::new(0, 0, 0, 0).into(),
         workers: 10,
         ..Config::debug_default()

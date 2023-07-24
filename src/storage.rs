@@ -13,7 +13,7 @@ extern crate lru;
 use lru::LruCache;
 use std::num::NonZeroUsize;
 
-static CACHE_SIZE:usize = 5;
+static CACHE_SIZE:usize = 20;
 
 pub struct Storage {
     pub map: Arc<Mutex<LruCache<String, View>>>,

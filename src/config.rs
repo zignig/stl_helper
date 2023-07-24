@@ -1,11 +1,13 @@
-use std::{fs, process::exit};
 // config for  the server setup
 use clap::{Parser, Subcommand};
+use figment::{
+    providers::{Format, Toml},
+    Figment,
+};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use toml;
 
-#[derive(Parser)]
+#[derive(Parser,Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Optional name to operate on
@@ -23,7 +25,7 @@ pub struct Cli {
     command: Option<Commands>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand,Debug)]
 pub enum Commands {
     Add,
     Remove,
@@ -31,33 +33,41 @@ pub enum Commands {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    port: u16,
-    folders: Vec<PathBuf>,
-    autorotate: bool,
+    pub port: u16,
+    pub folders: Vec<PathBuf>,
+    pub autorotate: bool,
 }
 
 impl Config {
     pub fn new() -> Self {
         Self {
-            port: 8081,
+            port: 8001,
             folders: vec![PathBuf::from(r"incoming")],
             autorotate: false,
         }
     }
 
-    pub fn load(filename: String) -> Self {
-        let settings = match fs::read_to_string(filename) {
-            Ok(c) => c,
-            Err(_) => exit(1),
-        };
-
-        // Load the config file from toml
-        let data: Config = match toml::from_str(&settings) {
-            Ok(d) => d,
-            Err(e) => exit(1),
-        };
-        data
+    pub fn startup() -> Self {
+        let res = Figment::new().merge(Toml::file("config.toml")).extract();
+        match res {
+            Ok(conf) => {
+                println!("{:#?}", conf);
+                return conf;
+            }
+            Err(e) => {
+                println!("error loading config {:?}", e);
+                return Config::new();
+            }
+        }
     }
 
-    pub fn save(&mut self, filename: String) {}
+}
+
+pub fn start() -> Config {
+    let cli = Cli::parse();
+    // do cli stuff
+    println!("{:#?}",cli);
+    let conf = Config::startup();
+
+    conf
 }

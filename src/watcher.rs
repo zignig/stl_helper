@@ -37,7 +37,7 @@ pub async fn async_debounce_watch<P: AsRef<Path>>(
                                     "stl" => {
                                         println!("process stl");
                                         if let Some(view) = loader::process(f, &store) {
-                                            sender.send(view);
+                                            let _ = sender.send(view);
                                         }
                                     }
                                     _ => println!("no binding"),
