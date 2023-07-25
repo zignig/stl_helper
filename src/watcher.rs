@@ -40,7 +40,7 @@ pub async fn async_debounce_watch<P: AsRef<Path>>(
                                             let _ = sender.send(view);
                                         }
                                     }
-                                    _ => println!("no binding"),
+                                    _ => {}, //println!("no binding"),
                                 }
                             }
                         }
