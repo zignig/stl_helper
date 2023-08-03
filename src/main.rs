@@ -49,6 +49,12 @@ async fn baked(file: PathBuf) -> Option<(ContentType, Cow<'static, [u8]>)> {
 #[template(path = "app.js", escape = "none")]
 struct AppJsTmpl;
 
+#[derive(Template)]
+#[template(path = "index.html")]
+struct IndexTmpl{
+    recent: Vec<String>
+}
+
 /// Returns an infinite stream of server-sent events. Each event is a message
 #[get("/events")]
 async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream![] {
@@ -72,9 +78,16 @@ async fn events(queue: &State<Receiver<View>>, mut end: Shutdown) -> EventStream
 }
 
 #[get("/")]
-async fn index() -> Option<RawHtml<Cow<'static, [u8]>>> {
-    let asset = Asset::get("index.html")?;
-    Some(RawHtml(asset.data))
+async fn index(store: &State<Storage>) -> (ContentType,String) {
+    let lru_list = store.map.lock().unwrap();
+    let mut list:Vec<String> = Vec::new();
+    for (i, _ ) in lru_list.iter(){ 
+        list.push(i.to_string())
+    }
+    let data = IndexTmpl{
+        recent: list
+    };
+    (ContentType::HTML,data.render().unwrap())
 }
 
 #[get("/app.js")]

@@ -22,7 +22,11 @@
     <div id="info" class="box panel " style="position: absolute">
         <aside class="menu">
             <ul id="models" class="menu-list">
-                <li>recent</li>
+                {% for item in recent%}
+                <li>
+                    <a onclick=recent("{{ item }}")>{{ item }}</a>
+                </li>
+                {% endfor %}
             </ul>
         </aside>
     </div>
