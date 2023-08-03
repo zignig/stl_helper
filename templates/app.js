@@ -41,12 +41,18 @@ scene.add(light);
 // light 2 
 var spot1 = new THREE.SpotLight(0xffffff);
 spot1.position.set(10, 100, -50);
+spot1.castShadow = true;
+spot1.shadow.mapSize.width = 1024;
+spot1.shadow.mapSize.height = 1024;
+
 scene.add(spot1);
 
 // FINISH SCENE SETUP
 
 scene3d.appendChild(renderer.domElement);
 renderer.render(scene, camera);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 function animate() {
 
@@ -83,6 +89,8 @@ function load_stl(name) {
             clear();
             const mesh = new THREE.Mesh(geometry, material)
             obj = mesh
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
             scene.add(mesh)
         },
         (xhr) => {

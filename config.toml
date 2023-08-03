@@ -1,3 +1,4 @@
 port = 8001
 autorotate = true
-folders = ['/opt/opencascade-rs/','/opt/viewer/stls/','/opt/cascade_rs_investigations']
+folders = ['/opt/opencascade-rs/','/opt/stl_helper/static/','/opt/cascade_rs_investigations/gridfin/']
+

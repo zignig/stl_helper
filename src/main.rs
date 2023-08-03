@@ -91,17 +91,16 @@ async fn index(store: &State<Storage>) -> (ContentType,String) {
 }
 
 #[get("/app.js")]
-async fn app_js() -> (ContentType,String) {
-    let data = AppJsTmpl {
-    };
-    (ContentType::JavaScript,data.render().unwrap())
+async fn app_js() -> (ContentType, String) {
+    let data = AppJsTmpl {};
+    (ContentType::JavaScript, data.render().unwrap())
 }
 
 #[get("/recent/<name>")]
-async fn recent(name: String, tx: &State<Sender<View>> ,store: &State<Storage>){
+async fn recent(name: String, tx: &State<Sender<View>>, store: &State<Storage>) {
     let mut map = store.map.lock().unwrap();
-    if let Some(view) = map.get(&name){
-        let mut cview  = view.clone();
+    if let Some(view) = map.get(&name) {
+        let mut cview = view.clone();
         for (i, _) in map.iter() {
             cview.recent.push(i.to_string());
             //println!("{:#?}", i)
@@ -123,9 +122,8 @@ async fn model(name: String, store: &State<Storage>) -> Option<Vec<u8>> {
 async fn main() -> Result<(), rocket::Error> {
     let conf = config::start();
 
-
     // Create the primary channel
-    let (tx,rx) = channel::<View>(1024);
+    let (tx, rx) = channel::<View>(1024);
     let rocket_tx = tx.clone();
 
     // Create the storagee
@@ -145,12 +143,7 @@ async fn main() -> Result<(), rocket::Error> {
 
     // File change
     tokio::spawn(async {
-        let _ = watcher::async_debounce_watch(
-            other,
-            tx,
-            conf.folders,
-        )
-        .await;
+        let _ = watcher::async_debounce_watch(other, tx, conf.folders).await;
     });
 
     // Web Config
@@ -166,7 +159,7 @@ async fn main() -> Result<(), rocket::Error> {
         .manage(rx)
         .manage(stor)
         .manage(rocket_tx)
-        .mount("/", routes![index,app_js,recent,baked, events, model])
+        .mount("/", routes![index, app_js, recent, baked, events, model])
         //.mount("/", FileServer::from(relative!("static")))
         .launch()
         .await?;

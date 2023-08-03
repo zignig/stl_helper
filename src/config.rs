@@ -7,7 +7,7 @@ use figment::{
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-#[derive(Parser,Debug)]
+#[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Optional name to operate on
@@ -25,7 +25,7 @@ pub struct Cli {
     command: Option<Commands>,
 }
 
-#[derive(Subcommand,Debug)]
+#[derive(Subcommand, Debug)]
 pub enum Commands {
     Add,
     Remove,
@@ -60,13 +60,12 @@ impl Config {
             }
         }
     }
-
 }
 
 pub fn start() -> Config {
     let cli = Cli::parse();
     // do cli stuff
-    println!("{:#?}",cli);
+    println!("{:#?}", cli);
     let conf = Config::startup();
 
     conf

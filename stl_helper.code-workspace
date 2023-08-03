@@ -5,6 +5,12 @@
 		},
 		{
 			"path": "../opencascade-rs"
+		},
+		{
+			"path": "../other/gentest"
+		},
+		{
+			"path": "../cascade_rs_investigations/gridfin"
 		}
 	]
 }
