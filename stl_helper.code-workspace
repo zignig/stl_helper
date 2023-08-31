@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "../cascade_rs_investigations/gridfin"
+		},
+		{
+			"path": "../cascade_rs_investigations/interp"
 		}
 	]
 }

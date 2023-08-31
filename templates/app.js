@@ -89,6 +89,7 @@ function load_stl(name) {
             clear();
             const mesh = new THREE.Mesh(geometry, material)
             obj = mesh
+            obj.rotateX(-Math.PI/2);
             mesh.receiveShadow = true;
             mesh.castShadow = true;
             scene.add(mesh)
